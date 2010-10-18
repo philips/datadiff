@@ -1,14 +1,17 @@
+import logging
 from difflib import SequenceMatcher
 
+log = logging.getLogger('datadiff')
+
 def diff(a, b):
-    # TODO: http://www.voidspace.org.uk/python/articles/duck_typing.shtml
-    # or attempt sequencematcher and handle errors
-    if type(a) == type(b) == list:
+    try:
         return diff_seq(a, b)
-    elif type(a) == type(b) == dict:
-        return diff_dict(a, b)
-    else:
-        raise Exception("not implemented")
+    except:
+        if type(a) == type(b) == dict:
+            return diff_dict(a, b)
+        else:
+            log.exception('tried SequenceMatcher but got error')
+            raise Exception("not implemented for this type")
 
 class DataDiff(object):
     
