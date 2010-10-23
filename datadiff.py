@@ -77,8 +77,8 @@ def diff_seq(a, b):
             else:
                 items = a[i1:i2]
             if change == 'replace':
-                diff.delete_multi(a[j1:j2])
-                diff.insert_multi(b[i1:i2])
+                diff.delete_multi(a[i1:i2])
+                diff.insert_multi(b[j1:j2])
             else:
                 diff.multi(change, items)
     return diff

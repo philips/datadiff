@@ -12,8 +12,8 @@ def test_diff_objects():
     diff(Foo(), Foo())
 
 def test_diff_list():
-    a = [1,'x', 2, 3, 4]
-    b = [1,'y', 2, 4, 5]
+    a = [1,'x', 2, 3, 4, 5]
+    b = [1,'y', 2, 4, 6]
     d = diff(a, b)
     expected = dedent('''\
         [
@@ -23,6 +23,21 @@ def test_diff_list():
          2,
         -3,
          4,
+        -5,
+        +6,
+        ]''')
+    print d
+    print expected
+    assert_equal(str(d), expected)
+
+def test_diff_list_2nd_longer():
+    a = [3]
+    b = [4, 5]
+    d = diff(a, b)
+    expected = dedent('''\
+        [
+        -3,
+        +4,
         +5,
         ]''')
     print d
