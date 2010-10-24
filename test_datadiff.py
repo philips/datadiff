@@ -49,6 +49,21 @@ def test_diff_list_2nd_longer():
     print d
     print expected
     assert_equal(str(d), expected)
+    
+def test_diff_list_complex():
+    a = [1, [2, 3], 4]
+    b = [1, 4]
+    d = diff(a, b)
+    expected = dedent('''\
+        --- a
+        +++ b
+        @@ @@
+        [
+         1,
+        -[2, 3],
+         4,
+        ]''')
+    assert_equal(str(d), expected)
 
 def test_diff_seq_objects():
     class FooSeq(object):
@@ -107,6 +122,22 @@ def test_diff_dict():
     print expected
     assert_equal(str(d), expected)
 
+def test_diff_dict_complex():
+    a = dict(a=1, b=dict(foo='bar'))
+    b = dict(a=1)
+    d = diff(a, b)
+    expected = dedent('''\
+        --- a
+        +++ b
+        @@ @@
+        {
+         'a': 1,
+        -'b': {'foo': 'bar'},
+        }''')
+    print d
+    print expected
+    assert_equal(str(d), expected)
+
 def test_diff_set(set_type=set):
     a = set_type([1, 3, 5, 7, 'abc', 'def'])
     b = set_type(['qwert', 3, 7, 'abc'])
@@ -134,8 +165,12 @@ def test_diff_frozenset():
 def test_eval_bool():
     d = diff([1], [1])
     assert_equal(bool(d), False)
+    
     d = diff([1], [2])
     assert_equal(bool(d), True)
+    
+    d = diff(dict(a=1), dict(a=1))
+    assert_equal(bool(d), False)
 
 def test_equal():
     d = diff([1], [1])

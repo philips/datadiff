@@ -78,7 +78,7 @@ class DataDiff(object):
         return self.__bool__()
     
     def __bool__(self):
-        return bool(self.diffs)
+        return bool([d for d in self.diffs if d[0] != 'equal'])
 
 def diff_seq(a, b):
     sm = SequenceMatcher(a=a, b=b)
