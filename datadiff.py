@@ -52,6 +52,8 @@ class DataDiff(object):
         return self.multi('equal', items)
     
     def __str__(self):
+        if not self.diffs:
+            return ''
         output = []
         output.append(self.type_start_str)
         for change, items in self.diffs:
@@ -67,6 +69,12 @@ class DataDiff(object):
                 output.append("%s%r," % (ch, item))
         output.append(self.type_end_str)
         return '\n'.join(output)
+    
+    def __nonzero__(self):
+        return self.__bool__()
+    
+    def __bool__(self):
+        return bool(self.diffs)
 
 def diff_seq(a, b):
     sm = SequenceMatcher(a=a, b=b)

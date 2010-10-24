@@ -1,6 +1,6 @@
 from textwrap import dedent
 
-from nose.tools import assert_equal, raises
+from nose.tools import assert_equal, raises, assert_false, assert_true
 
 from datadiff import diff
 
@@ -125,3 +125,13 @@ def test_diff_set(set_type=set):
     
 def test_diff_frozenset():
     return test_diff_set(set_type=frozenset)
+
+def test_eval_bool():
+    d = diff([1], [1])
+    assert_equal(bool(d), False)
+    d = diff([1], [2])
+    assert_equal(bool(d), True)
+
+def test_equal():
+    d = diff([1], [1])
+    assert_equal(str(d), '')    
