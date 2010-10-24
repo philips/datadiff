@@ -16,6 +16,9 @@ def test_diff_list():
     b = [1,'y', 2, 4, 6]
     d = diff(a, b)
     expected = dedent('''\
+        --- a
+        +++ b
+        @@ @@
         [
          1,
         -'x',
@@ -35,6 +38,9 @@ def test_diff_list_2nd_longer():
     b = [4, 5]
     d = diff(a, b)
     expected = dedent('''\
+        --- a
+        +++ b
+        @@ @@
         [
         -3,
         +4,
@@ -44,19 +50,6 @@ def test_diff_list_2nd_longer():
     print expected
     assert_equal(str(d), expected)
 
-# PHP:
-"""
---- Expected
-+++ Actual
-@@ @@
- Array
- (
-     [0] => HTTP/1.1 301 Moved Permanently
--    [1] => Location: http://sf-dbrondsema-5010.sb.sf.net/projects/project1/files/proj1.file1.tgz/download?use_mirror=master
-+    [1] => Location: http://sf-dbrondsema-5010.sb.sf.net/projects/project1/files
- )
-"""
- 
 def test_diff_seq_objects():
     class FooSeq(object):
         def __init__(self, list):
@@ -70,6 +63,9 @@ def test_diff_seq_objects():
     
     d = diff(FooSeq([1]), FooSeq([1,2]))
     expected = dedent('''\
+        --- a
+        +++ b
+        @@ @@
         FooSeq([
          1,
         +2,
@@ -81,6 +77,9 @@ def test_diff_seq_objects():
 def test_tuple():
     d = diff((1,2), (1,3))
     expected = dedent('''\
+        --- a
+        +++ b
+        @@ @@
         (
          1,
         -2,
@@ -94,6 +93,9 @@ def test_diff_dict():
     d = diff(a, b)
     print d
     expected = dedent('''\
+        --- a
+        +++ b
+        @@ @@
         {
         +'four': 4,
         -'zero': 0,
@@ -111,6 +113,9 @@ def test_diff_set(set_type=set):
     d = diff(a, b)
     print d
     expected = dedent('''\
+        --- a
+        +++ b
+        @@ @@
         %s([
          3,
          'abc',
@@ -134,4 +139,4 @@ def test_eval_bool():
 
 def test_equal():
     d = diff([1], [1])
-    assert_equal(str(d), '')    
+    assert_equal(str(d), '')

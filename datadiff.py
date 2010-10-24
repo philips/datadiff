@@ -54,7 +54,11 @@ class DataDiff(object):
     def __str__(self):
         if not self.diffs:
             return ''
-        output = []
+        output = [
+            '--- a',
+            '+++ b',
+            '@@ @@',
+        ]
         output.append(self.type_start_str)
         for change, items in self.diffs:
             if change == 'delete':
