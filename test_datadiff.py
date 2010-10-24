@@ -70,12 +70,22 @@ def test_diff_seq_objects():
     
     d = diff(FooSeq([1]), FooSeq([1,2]))
     expected = dedent('''\
-        [
+        FooSeq([
          1,
         +2,
-        ]''')
+        ])''')
     print d
     print expected
+    assert_equal(str(d), expected)
+
+def test_tuple():
+    d = diff((1,2), (1,3))
+    expected = dedent('''\
+        (
+         1,
+        -2,
+        +3,
+        )''')
     assert_equal(str(d), expected)
 
 def test_diff_dict():
@@ -95,19 +105,23 @@ def test_diff_dict():
     print expected
     assert_equal(str(d), expected)
 
-def test_diff_set():
-    a = set([1, 3, 5, 7, 'abc', 'def'])
-    b = set(['qwert', 3, 7, 'abc'])
+def test_diff_set(set_type=set):
+    a = set_type([1, 3, 5, 7, 'abc', 'def'])
+    b = set_type(['qwert', 3, 7, 'abc'])
     d = diff(a, b)
     print d
     expected = dedent('''\
-        set([
-        +'four': 4,
-        -'zero': 0,
-        +'zero': '@',
-         'three': 3,
-         'one': 1,
-        -'two': 2,
-        ])''')
+        %s([
+         3,
+         'abc',
+         7,
+        -1,
+        -5,
+        -'def',
+        +'qwert',
+        ])''') % set_type.__name__
     print expected
     assert_equal(str(d), expected)
+    
+def test_diff_frozenset():
+    return test_diff_set(set_type=frozenset)
