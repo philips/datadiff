@@ -127,7 +127,7 @@ def diff_seq(a, b):
 
 class dictitem(tuple):
     def __repr__(self):
-        return "'%s': %r" % (self[0], self[1]) 
+        return "%r: %r" % (self[0], self[1]) 
 
 def diff_dict(a, b, context=4):
     diff = DataDiff(dict, '{', '}')
