@@ -5,6 +5,10 @@ from nose.tools import assert_equal, raises, assert_false, assert_true
 from datadiff import diff
 
 from pprint import pformat
+from unittest import TestCase
+import nose
+from nose.config import Config
+
 
 @raises(Exception)
 def test_diff_objects():
@@ -49,8 +53,8 @@ def test_diff_list_2nd_longer():
     print d
     print expected
     assert_equal(str(d), expected)
-    
-def test_diff_list_complex():
+
+def test_diff_list_list():
     a = [1, [2, 3], 4]
     b = [1, 4]
     d = diff(a, b)
@@ -61,6 +65,36 @@ def test_diff_list_complex():
         [
          1,
         -[2, 3],
+         4,
+        ]''')
+    assert_equal(str(d), expected)
+
+def test_diff_list_dict():
+    a = [1, {'a': 'b'}, 4]
+    b = [1, 4]
+    d = diff(a, b)
+    expected = dedent('''\
+        --- a
+        +++ b
+        @@ @@
+        [
+         1,
+        -{'a': 'b'},
+         4,
+        ]''')
+    assert_equal(str(d), expected)
+
+def test_diff_list_set():
+    a = [1, set([8, 9]), 4]
+    b = [1, 4]
+    d = diff(a, b)
+    expected = dedent('''\
+        --- a
+        +++ b
+        @@ @@
+        [
+         1,
+        -set([8, 9]),
          4,
         ]''')
     assert_equal(str(d), expected)
