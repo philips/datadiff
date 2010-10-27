@@ -80,24 +80,23 @@ class DataDiff(object):
     def __bool__(self):
         return bool([d for d in self.diffs if d[0] != 'equal'])
 
-def all_hashable(seq):
-    ret = []
-    for s in seq:
-        #try:
-        #    hash(s)
-        #except TypeError:
-        if type(s) == list:
-            ret.append(tuple(s))
-        elif type(s) == dict:
-            ret.append(tuple(sorted(s.iteritems())))
-        elif type(s) == set:
-            ret.append(frozenset(s))
-        else:
-            ret.append(s)
-    return ret
+def hashable(s):
+    if type(s) == list:
+        return tuple(s)
+    elif type(s) == dict:
+        return tuple(sorted(s.iteritems()))
+    elif type(s) == set:
+        return frozenset(s)
+    else:
+        try:
+            hash(s)
+        except TypeError:
+            raise Exception("Not a hashable type (and it needs to be, for its parent diff): %s" % s)
+        return s
 
 def diff_seq(a, b):
-    sm = SequenceMatcher(a=all_hashable(a), b=all_hashable(b))
+    sm = SequenceMatcher(a = [hashable(_) for _ in a],
+                         b = [hashable(_) for _ in b])
     if type(a) == tuple:
         diff = DataDiff(tuple, '(', ')')
     elif type(b) == list:
