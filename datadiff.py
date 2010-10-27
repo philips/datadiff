@@ -92,7 +92,7 @@ def hashable(s):
     if type(s) == list:
         return tuple(s)
     elif type(s) == dict:
-        return tuple(sorted(s.iteritems()))
+        return frozenset(s.iteritems())
     elif type(s) == set:
         return frozenset(s)
     else:
