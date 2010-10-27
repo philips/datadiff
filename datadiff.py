@@ -3,6 +3,14 @@ from difflib import SequenceMatcher
 
 log = logging.getLogger('datadiff')
 
+
+"""
+For each type, we need:
+* a diff()
+* start/end strings
+* conversion to hashable
+"""
+
 def diff(a, b):
     if type(a) != type(b):
         return 'Types differ: %s %s' % (type(a), type(b)) # TODO preview of values
