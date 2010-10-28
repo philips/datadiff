@@ -70,8 +70,8 @@ def test_diff_list_2nd_longer():
     expected = dedent('''\
         --- a
         +++ b
-        @@ @@
         [
+        @@ -0 +0,1 @@
         -3,
         +4,
         +5,
@@ -87,8 +87,8 @@ def test_diff_list_list():
     expected = dedent('''\
         --- a
         +++ b
-        @@ @@
         [
+        @@ -0,2 +0,1 @@
          1,
         -[2, 3],
          4,
@@ -102,8 +102,8 @@ def test_diff_list_dict():
     expected = dedent('''\
         --- a
         +++ b
-        @@ @@
         [
+        @@ -0,2 +0,1 @@
          1,
         -{'a': 'b'},
          4,
@@ -117,8 +117,8 @@ def test_diff_list_set():
     expected = dedent('''\
         --- a
         +++ b
-        @@ @@
         [
+        @@ -0,2 +0,1 @@
          1,
         -set([8, 9]),
          4,
@@ -140,8 +140,8 @@ def test_diff_seq_objects():
     expected = dedent('''\
         --- a
         +++ b
-        @@ @@
         FooSeq([
+        @@ -0 +0,1 @@
          1,
         +2,
         ])''')
@@ -154,8 +154,8 @@ def test_tuple():
     expected = dedent('''\
         --- a
         +++ b
-        @@ @@
         (
+        @@ -0,1 +0,1 @@
          1,
         -2,
         +3,
@@ -170,7 +170,6 @@ def test_diff_dict():
     expected = dedent('''\
         --- a
         +++ b
-        @@ @@
         {
         +'four': 4,
         -'zero': 0,
@@ -189,7 +188,6 @@ def test_diff_dict_complex():
     expected = dedent('''\
         --- a
         +++ b
-        @@ @@
         {
          'a': 1,
         -'b': {'foo': 'bar'},
@@ -206,7 +204,6 @@ def test_diff_set(set_type=set):
     expected = dedent('''\
         --- a
         +++ b
-        @@ @@
         %s([
          3,
          'abc',
