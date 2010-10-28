@@ -148,22 +148,33 @@ def diff_seq(a, b, context=3):
 
 class dictitem(tuple):
     def __repr__(self):
-        return "%r: %r" % (self[0], self[1]) 
+        return "%r: %r" % (self[0], self[1])
 
 def diff_dict(a, b, context=3):
     diff = DataDiff(dict, '{', '}')
-    for key in b:
-        if key not in a:
-            diff.insert(dictitem((key, b[key])))
+    for key in a.keys():
+        if key not in b:
+            diff.delete(dictitem((key, a[key])))
         elif a[key] != b[key]:
             diff.delete(dictitem((key, a[key])))
             diff.insert(dictitem((key, b[key])))
-        elif context:
-            diff.equal(dictitem((key, a[key])))
+        else:
+            if context:
+                diff.equal(dictitem((key, a[key])))
             context -= 1
-    for key in a:
-        if key not in b:
-            diff.delete(dictitem((key, a[key])))
+    for key in b:
+        if key not in a:
+            diff.insert(dictitem((key, b[key])))
+
+    def diffitem_dictitem_cmp(diffitem1, diffitem2):
+        change1, dictitem1 = diffitem1
+        change2, dictitem2 = diffitem2
+        return cmp(dictitem1[0], dictitem2[0])
+    diff.diffs.sort(cmp=diffitem_dictitem_cmp)
+
+    if context < 0:
+        diff.context_end_container()
+
     return diff
 
 def diff_set(a, b, context=3):

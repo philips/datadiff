@@ -163,8 +163,8 @@ def test_tuple():
     assert_equal(str(d), expected)
 
 def test_diff_dict():
-    a = dict(zero=0, one=1, two=2, three=3)
-    b = dict(zero='@', one=1, three=3, four=4)
+    a = dict(zero=0,   one=1, two=2, three=3,         nine=9, ten=10)
+    b = dict(zero='@', one=1,        three=3, four=4, nine=9, ten=10)
     d = diff(a, b)
     print d
     expected = dedent('''\
@@ -172,11 +172,13 @@ def test_diff_dict():
         +++ b
         {
         +'four': 4,
+         'nine': 9,
+         'ten': 10,
+         'three': 3,
+        -'two': 2,
         -'zero': 0,
         +'zero': '@',
-         'three': 3,
-         'one': 1,
-        -'two': 2,
+        @@  @@
         }''')
     print expected
     assert_equal(str(d), expected)
