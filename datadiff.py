@@ -37,7 +37,13 @@ class DataDiff(object):
         else:
             self.type_start_str = type_start_str
             self.type_end_str = type_end_str
-    
+
+    def context(self, a_start, a_end, b_start, b_end):
+        self.diffs.append(('context', [a_start, a_end, b_start, b_end]))
+
+    def context_end_container(self):
+        self.diffs.append(('context_end_container', []))
+
     def multi(self, change, items):
         self.diffs.append((change, items))
         
@@ -65,10 +71,21 @@ class DataDiff(object):
         output = [
             '--- a',
             '+++ b',
-            '@@ @@',
         ]
         output.append(self.type_start_str)
         for change, items in self.diffs:
+            if change == 'context':
+                context_a = str(items[0])
+                if items[0] != items[1]:
+                    context_a += ',' + str(items[1])
+                context_b = str(items[2])
+                if items[2] != items[3]:
+                    context_b += ',' + str(items[3])
+                output.append('@@ -%s +%s @@' % (context_a, context_b))
+                continue
+            if change == 'context_end_container':
+                output.append('@@ @@')
+                continue
             if change == 'delete':
                 ch = '-'
             elif change == 'insert':
@@ -102,7 +119,7 @@ def hashable(s):
             raise Exception("Not a hashable type (and it needs to be, for its parent diff): %s" % s)
         return s
 
-def diff_seq(a, b):
+def diff_seq(a, b, context=3):
     sm = SequenceMatcher(a = [hashable(_) for _ in a],
                          b = [hashable(_) for _ in b])
     if type(a) == tuple:
@@ -111,7 +128,9 @@ def diff_seq(a, b):
         diff = DataDiff(list, '[', ']')
     else:
         diff = DataDiff(type(a))
-    for chunk in sm.get_grouped_opcodes():
+    for chunk in sm.get_grouped_opcodes(context):
+        diff.context(max(chunk[0][1]-1,0), max(chunk[-1][2]-1, 0),
+                     max(chunk[0][3]-1,0), max(chunk[-1][4]-1, 0))
         for change, i1, i2, j1, j2 in chunk:
             if change == 'insert':
                 items = b[j1:j2]
@@ -122,6 +141,8 @@ def diff_seq(a, b):
                 diff.insert_multi(b[j1:j2])
             else:
                 diff.multi(change, items)
+        if i2 < len(a):
+            diff.context_end_container()
     return diff
 
 
@@ -129,7 +150,7 @@ class dictitem(tuple):
     def __repr__(self):
         return "%r: %r" % (self[0], self[1]) 
 
-def diff_dict(a, b, context=4):
+def diff_dict(a, b, context=3):
     diff = DataDiff(dict, '{', '}')
     for key in b:
         if key not in a:
@@ -145,7 +166,7 @@ def diff_dict(a, b, context=4):
             diff.delete(dictitem((key, a[key])))
     return diff
 
-def diff_set(a, b, context=4):
+def diff_set(a, b, context=3):
     diff = DataDiff(type(a))
     diff.equal_multi(list(a.intersection(b))[:context])
     diff.delete_multi(a - b)

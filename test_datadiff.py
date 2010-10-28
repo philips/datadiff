@@ -22,8 +22,8 @@ def test_diff_list():
     expected = dedent('''\
         --- a
         +++ b
-        @@ @@
         [
+        @@ -0,5 +0,4 @@
          1,
         -'x',
         +'y',
@@ -32,6 +32,32 @@ def test_diff_list():
          4,
         -5,
         +6,
+        ]''')
+    print d
+    print expected
+    assert_equal(str(d), expected)
+
+def test_diff_list_context():
+    a = [1]*50 + [2, 3, 4, 5] + [1]*10
+    b = [1]*50 + [3, 7] + [1]*10
+    d = diff(a, b)
+    expected = dedent('''\
+        --- a
+        +++ b
+        [
+        @@ -46,56 +46,54 @@
+         1,
+         1,
+         1,
+        -2,
+         3,
+        -4,
+        -5,
+        +7,
+         1,
+         1,
+         1,
+        @@ @@
         ]''')
     print d
     print expected
