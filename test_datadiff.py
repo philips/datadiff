@@ -218,17 +218,35 @@ def test_diff_set(set_type=set):
         --- a
         +++ b
         %s([
-         3,
-         'abc',
-         7,
         -1,
         -5,
         -'def',
         +'qwert',
+         3,
+         'abc',
+         7,
         ])''') % set_type.__name__
     print expected
     assert_equal(str(d), expected)
-    
+
+def test_diff_set_context():
+    a = set([1, 2, 3, 4, 5, 6, 7, 8, 9])
+    b = set([1, 2, 3, 4, 5, 6, 7, 8])
+    d = diff(a, b)
+    print d
+    expected = dedent('''\
+        --- a
+        +++ b
+        set([
+        -9,
+         1,
+         2,
+         3,
+        @@  @@
+        ])''')
+    print expected
+    assert_equal(str(d), expected)
+
 def test_diff_frozenset():
     return test_diff_set(set_type=frozenset)
 

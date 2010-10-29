@@ -182,7 +182,10 @@ def diff_dict(a, b, context=3):
 
 def diff_set(a, b, context=3):
     diff = DataDiff(type(a))
-    diff.equal_multi(list(a.intersection(b))[:context])
     diff.delete_multi(a - b)
     diff.insert_multi(b - a)
+    equal = list(a.intersection(b))
+    diff.equal_multi(equal[:context])
+    if len(equal) > context:
+        diff.context_end_container()
     return diff
