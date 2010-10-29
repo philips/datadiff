@@ -1,14 +1,9 @@
 from textwrap import dedent
+from datetime import datetime
 
 from nose.tools import assert_equal, raises, assert_false, assert_true
 
 from datadiff import diff
-
-from pprint import pformat
-from unittest import TestCase
-import nose
-from nose.config import Config
-
 
 @raises(Exception)
 def test_diff_objects():
@@ -57,7 +52,7 @@ def test_diff_list_context():
          1,
          1,
          1,
-        @@ @@
+        @@  @@
         ]''')
     print d
     print expected
@@ -179,6 +174,22 @@ def test_diff_dict():
         -'zero': 0,
         +'zero': '@',
         @@  @@
+        }''')
+    print expected
+    assert_equal(str(d), expected)
+
+def test_diff_dict_keytypes():
+    a = {}
+    b = {datetime(2010,10,28): 1, True: 1, 2: 2}
+    d = diff(a, b)
+    print d
+    expected = dedent('''\
+        --- a
+        +++ b
+        {
+        +True: 1,
+        +2: 2,
+        +datetime.datetime(2010, 10, 28, 0, 0): 1,
         }''')
     print expected
     assert_equal(str(d), expected)

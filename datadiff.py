@@ -84,7 +84,7 @@ class DataDiff(object):
                 output.append('@@ -%s +%s @@' % (context_a, context_b))
                 continue
             if change == 'context_end_container':
-                output.append('@@ @@')
+                output.append('@@  @@')
                 continue
             if change == 'delete':
                 ch = '-'
@@ -169,7 +169,10 @@ def diff_dict(a, b, context=3):
     def diffitem_dictitem_cmp(diffitem1, diffitem2):
         change1, dictitem1 = diffitem1
         change2, dictitem2 = diffitem2
-        return cmp(dictitem1[0], dictitem2[0])
+        try:
+            return cmp(dictitem1[0], dictitem2[0])
+        except TypeError:
+            return 1 # whatever
     diff.diffs.sort(cmp=diffitem_dictitem_cmp)
 
     if context < 0:
