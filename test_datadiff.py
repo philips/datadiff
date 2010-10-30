@@ -1,14 +1,18 @@
 from textwrap import dedent
 from datetime import datetime
 
-from nose.tools import assert_equal, raises, assert_false, assert_true
+from nose.tools import assert_equal, raises, assert_false, assert_true, assert_raises
 
-from datadiff import diff
+from datadiff import diff, DataDiff, NotHashable
 
-@raises(Exception)
 def test_diff_objects():
     class Foo(object): pass
-    diff(Foo(), Foo())
+    try:
+        diff(Foo(), Foo())
+    except Exception as e:
+        assert_equal(type(e), TypeError, "Raised exception should be TypeError")
+    else:
+        assert "Should've raised a TypeError"
 
 def test_diff_list():
     a = [1,'x', 2, 3, 4, 5]
@@ -263,3 +267,21 @@ def test_eval_bool():
 def test_equal():
     d = diff([1], [1])
     assert_equal(str(d), '')
+
+@raises(TypeError)
+def test_diff_types():
+    d = diff([1], {1:1})
+
+@raises(Exception)
+def test_DataDiff_init_params():
+    DataDiff(list, '[')
+    
+def test_DataDiff_change_type():
+    dd = DataDiff(list, '[', ']')
+    dd.multi('foobar', [1234])
+    assert_raises(Exception, str, dd)
+    
+def test_unhashable_type():
+    a = []
+    b = [slice(1)]
+    assert_raises(NotHashable, diff, a, b)
