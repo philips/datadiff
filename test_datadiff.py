@@ -1,9 +1,12 @@
 from textwrap import dedent
 from datetime import datetime
 
+import nose
 from nose.tools import assert_equal, raises, assert_false, assert_true, assert_raises
 
 from datadiff import diff, DataDiff, NotHashable
+
+if __name__ == '__main__': nose.main()
 
 def test_diff_objects():
     class Foo(object): pass
@@ -148,6 +151,15 @@ def test_diff_seq_objects():
     print expected
     assert_equal(str(d), expected)
 
+def test_diff_almost_seq_objects():
+    class FooSeq(object):
+        def __init__(self, list):
+            self.list = list
+        def __iter__(self):
+            return iter(self.list)
+    
+    assert_raises(TypeError, diff, FooSeq([1]), FooSeq([1,2]))
+  
 def test_tuple():
     d = diff((1,2), (1,3))
     expected = dedent('''\

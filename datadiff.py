@@ -22,7 +22,7 @@ def diff(a, b):
     if hasattr(a, 'intersection') and hasattr(a, 'difference'):
         return diff_set(a, b)
     try:
-        return diff_seq(a, b)
+        return try_diff_seq(a, b)
     except NotSequence:
         raise TypeError("diff() not implemented for this type %s" % type(a))
 
@@ -121,20 +121,25 @@ def hashable(s):
             raise NotHashable("Not a hashable type (and it needs to be, for its parent diff): %s" % s)
         return s
 
-def diff_seq(a, b, context=3):
+def try_diff_seq(a, b, context=3):
     """
     Safe to try any containers with this function, to see if it might be a sequence
     Raises TypeError if its not a sequence
     """
+    try:
+        return diff_seq(a, b, context)
+    except NotHashable:
+        raise
+    except:
+        log.debug('tried SequenceMatcher but got error', exc_info=True)
+        raise NotSequence("Cannot use SequenceMatcher on %s" % type(a))
+
+def diff_seq(a, b, context=3):
     if not hasattr(a, '__iter__') or not hasattr(b, '__iter__'):
         raise NotSequence("Not a sequence %s" % type(a))
     hashable_a = [hashable(_) for _ in a]
     hashable_b = [hashable(_) for _ in b]
-    try:
-        sm = SequenceMatcher(a = hashable_a, b = hashable_b)
-    except:
-        log.debug('tried SequenceMatcher but got error', exc_info=True)
-        raise NotSequence("Cannot use SequenceMatcher on %s" % type(a))
+    sm = SequenceMatcher(a = hashable_a, b = hashable_b)
     if type(a) == tuple:
         diff = DataDiff(tuple, '(', ')')
     elif type(b) == list:
