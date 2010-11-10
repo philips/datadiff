@@ -1,5 +1,5 @@
 import logging
-from difflib import SequenceMatcher
+from difflib import SequenceMatcher, unified_diff
 
 log = logging.getLogger('datadiff')
 
@@ -13,10 +13,32 @@ For each type, we need:
 
 class NotHashable(TypeError): pass
 class NotSequence(TypeError): pass
+class DiffNotImplementedForType(TypeError):
+    def __init__(self, attempted_type):
+        self.attempted_type = attempted_type
+    def __str__(self):
+        return "diff() not implemented for %s" % self.attempted_type
+
+def unified_diff_strings(a, b, fromfile='', tofile='', fromfiledate='', tofiledate='', n=3, lineterm='\n'):
+    """
+    Wrapper around difflib.unified_diff that accepts 'a' and 'b' as multi-line strings
+    and returns a multi-line string, instead of lists of strings.
+    """
+    a_lines = [a_line+'\n' for a_line in a.split('\n')]
+    b_lines = [b_line+'\n' for b_line in b.split('\n')]
+    return ''.join(unified_diff(a_lines, b_lines, fromfile, tofile, fromfiledate, tofiledate, n, lineterm))
 
 def diff(a, b):
     if type(a) != type(b):
         raise TypeError('Types differ: a=%s b=%s Values of a and b are: %r, %r' % (type(a), type(b), a, b))
+    if type(a) == str:
+        # special cases
+        if '\n' in a or '\n' in b:
+            return unified_diff_strings(a, b, fromfile='a', tofile='b')
+        else:
+            # even though technically it is a sequence,
+            # we don't want to diff char-by-char
+            raise DiffNotImplementedForType(str)
     if type(a) == dict:
         return diff_dict(a, b)
     if hasattr(a, 'intersection') and hasattr(a, 'difference'):
@@ -24,7 +46,7 @@ def diff(a, b):
     try:
         return try_diff_seq(a, b)
     except NotSequence:
-        raise TypeError("diff() not implemented for this type %s" % type(a))
+        raise DiffNotImplementedForType(type(a))
 
 class DataDiff(object):
     
@@ -45,6 +67,9 @@ class DataDiff(object):
 
     def context_end_container(self):
         self.diffs.append(('context_end_container', []))
+        
+    def nested(self, datadiff):
+        self.diffs.append(('datadiff', datadiff))
 
     def multi(self, change, items):
         self.diffs.append((change, items))
@@ -68,13 +93,16 @@ class DataDiff(object):
         return self.multi('equal', items)
     
     def __str__(self):
+        return self.stringify()
+        
+    def stringify(self, depth=0):
         if not self.diffs:
             return ''
-        output = [
-            '--- a',
-            '+++ b',
-        ]
-        output.append(self.type_start_str)
+        output = []
+        if depth == 0:
+            output.append('--- a')
+            output.append('+++ b')
+        output.append(' '*depth + self.type_start_str)
         for change, items in self.diffs:
             if change == 'context':
                 context_a = str(items[0])
@@ -83,10 +111,13 @@ class DataDiff(object):
                 context_b = str(items[2])
                 if items[2] != items[3]:
                     context_b += ',' + str(items[3])
-                output.append('@@ -%s +%s @@' % (context_a, context_b))
+                output.append(' '*depth + '@@ -%s +%s @@' % (context_a, context_b))
                 continue
             if change == 'context_end_container':
-                output.append('@@  @@')
+                output.append(' '*depth + '@@  @@')
+                continue
+            elif change == 'datadiff':
+                output.append(' '*depth + items.stringify(depth+1) + ',')
                 continue
             if change == 'delete':
                 ch = '-'
@@ -95,10 +126,10 @@ class DataDiff(object):
             elif change == 'equal':
                 ch = ' '
             else:
-                raise Exception(items)
+                raise Exception('Unknown change type %r' % change)
             for item in items:
-                output.append("%s%r," % (ch, item))
-        output.append(self.type_end_str)
+                output.append(' '*depth + "%s%r," % (ch, item))
+        output.append(' '*depth + self.type_end_str)
         return '\n'.join(output)
     
     def __nonzero__(self):
@@ -135,33 +166,55 @@ def try_diff_seq(a, b, context=3):
         raise NotSequence("Cannot use SequenceMatcher on %s" % type(a))
 
 def diff_seq(a, b, context=3):
-    if not hasattr(a, '__iter__') or not hasattr(b, '__iter__'):
+    if not hasattr(a, '__iter__') and not hasattr(a, '__getitem__'):
         raise NotSequence("Not a sequence %s" % type(a))
     hashable_a = [hashable(_) for _ in a]
     hashable_b = [hashable(_) for _ in b]
     sm = SequenceMatcher(a = hashable_a, b = hashable_b)
     if type(a) == tuple:
-        diff = DataDiff(tuple, '(', ')')
+        ddiff = DataDiff(tuple, '(', ')')
     elif type(b) == list:
-        diff = DataDiff(list, '[', ']')
+        ddiff = DataDiff(list, '[', ']')
     else:
-        diff = DataDiff(type(a))
+        ddiff = DataDiff(type(a))
     for chunk in sm.get_grouped_opcodes(context):
-        diff.context(max(chunk[0][1]-1,0), max(chunk[-1][2]-1, 0),
+        ddiff.context(max(chunk[0][1]-1,0), max(chunk[-1][2]-1, 0),
                      max(chunk[0][3]-1,0), max(chunk[-1][4]-1, 0))
         for change, i1, i2, j1, j2 in chunk:
-            if change == 'insert':
-                items = b[j1:j2]
-            else:
-                items = a[i1:i2]
             if change == 'replace':
-                diff.delete_multi(a[i1:i2])
-                diff.insert_multi(b[j1:j2])
+                consecutive_deletes = []
+                consecutive_inserts = []
+                for a2, b2 in zip(a[i1:i2], b[j1:j2]):
+                    try:
+                        nested_diff = diff(a2, b2)
+                        ddiff.delete_multi(consecutive_deletes)
+                        ddiff.insert_multi(consecutive_inserts)
+                        consecutive_deletes = []
+                        consecutive_inserts = []
+                        ddiff.nested(nested_diff)
+                    except DiffNotImplementedForType:
+                        consecutive_deletes.append(a2)
+                        consecutive_inserts.append(b2)
+                
+                # differing lengths get truncated by zip()
+                # here we handle the truncated items
+                ddiff.delete_multi(consecutive_deletes)
+                if i2-i1 > j2-j1:
+                    common_length = j2-j1 # covered by zip
+                    ddiff.delete_multi(a[i1+common_length:i2])
+                ddiff.insert_multi(consecutive_inserts)
+                if i2-i1 < j2-j1:
+                    common_length = i2-i1 # covered by zip
+                    ddiff.insert_multi(b[j1+common_length:j2])
             else:
-                diff.multi(change, items)
+                if change == 'insert':
+                    items = b[j1:j2]
+                else:
+                    items = a[i1:i2]
+                ddiff.multi(change, items)
         if i2 < len(a):
-            diff.context_end_container()
-    return diff
+            ddiff.context_end_container()
+    return ddiff
 
 
 class dictitem(tuple):

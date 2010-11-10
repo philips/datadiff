@@ -2,9 +2,9 @@ from textwrap import dedent
 from datetime import datetime
 
 import nose
-from nose.tools import assert_equal, raises, assert_false, assert_true, assert_raises
+from nose.tools import assert_equal, raises, assert_raises
 
-from datadiff import diff, DataDiff, NotHashable
+from datadiff import diff, DataDiff, NotHashable, DiffNotImplementedForType
 
 if __name__ == '__main__': nose.main()
 
@@ -13,13 +13,39 @@ def test_diff_objects():
     try:
         diff(Foo(), Foo())
     except Exception as e:
-        assert_equal(type(e), TypeError, "Raised exception should be TypeError")
+        assert_equal(type(e), DiffNotImplementedForType,
+                     "Raised exception should be DiffNotImplementedForType")
+        assert_equal(e.attempted_type, Foo)
     else:
-        assert "Should've raised a TypeError"
+        raise AssertionError("Should've raised a DiffNotImplementedForType")
+
+def test_diff_oneline_strings():
+    try:
+        diff('foobar', 'baz')
+    except Exception as e:
+        assert_equal(type(e), DiffNotImplementedForType,
+                     "Raised exception should be DiffNotImplementedForType")
+        assert_equal(e.attempted_type, str)
+    else:
+        raise AssertionError("Should've raised a DiffNotImplementedForType")
+
+def test_diff_multiline_strings():
+    d = diff('abc\ndef\nghi', 'abc\nghi')
+    expected = dedent('''\
+        --- a 
+        +++ b 
+        @@ -1,3 +1,2 @@
+         abc
+        -def
+         ghi
+    ''')
+    print d
+    print expected
+    assert_equal(str(d), expected)
 
 def test_diff_list():
-    a = [1,'x', 2, 3, 4, 5]
-    b = [1,'y', 2, 4, 6]
+    a = [1,'xyz', 2, 3, 4, 5]
+    b = [1,'abc', 2, 4, 6]
     d = diff(a, b)
     expected = dedent('''\
         --- a
@@ -27,8 +53,8 @@ def test_diff_list():
         [
         @@ -0,5 +0,4 @@
          1,
-        -'x',
-        +'y',
+        -'xyz',
+        +'abc',
          2,
         -3,
          4,
@@ -40,14 +66,14 @@ def test_diff_list():
     assert_equal(str(d), expected)
 
 def test_diff_list_context():
-    a = [1]*50 + [2, 3, 4, 5] + [1]*10
-    b = [1]*50 + [3, 7] + [1]*10
+    a = [1]*50 + [2, 3, 4, 5, 6, 7, 8] + [1]*10
+    b = [1]*50 + [3, 9, 10] + [1]*10
     d = diff(a, b)
     expected = dedent('''\
         --- a
         +++ b
         [
-        @@ -46,56 +46,54 @@
+        @@ -46,59 +46,55 @@
          1,
          1,
          1,
@@ -55,7 +81,11 @@ def test_diff_list_context():
          3,
         -4,
         -5,
-        +7,
+        -6,
+        -7,
+        -8,
+        +9,
+        +10,
          1,
          1,
          1,
@@ -297,3 +327,27 @@ def test_unhashable_type():
     a = []
     b = [slice(1)]
     assert_raises(NotHashable, diff, a, b)
+
+def test_recursive_list():
+    a = [1, [7, 8, 9, 10, 11], 3]
+    b = [1, [7, 8,    10, 11], 3]
+    d = diff(a, b)
+    print d
+    expected = dedent('''\
+        --- a
+        +++ b
+        [
+        @@ -0,2 +0,2 @@
+         1,
+         [
+         @@ -0,4 +0,3 @@
+          7,
+          8,
+         -9,
+          10,
+          11,
+         ],
+         3,
+        ]''')
+    print expected
+    assert_equal(str(d), expected)
