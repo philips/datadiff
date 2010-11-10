@@ -19,14 +19,14 @@ class DiffNotImplementedForType(TypeError):
     def __str__(self):
         return "diff() not implemented for %s" % self.attempted_type
 
-def unified_diff_strings(a, b, fromfile='', tofile='', fromfiledate='', tofiledate='', n=3, lineterm='\n'):
+def unified_diff_strings(a, b, fromfile='', tofile='', fromfiledate='', tofiledate='', n=3):
     """
     Wrapper around difflib.unified_diff that accepts 'a' and 'b' as multi-line strings
     and returns a multi-line string, instead of lists of strings.
     """
-    a_lines = [a_line+'\n' for a_line in a.split('\n')]
-    b_lines = [b_line+'\n' for b_line in b.split('\n')]
-    return ''.join(unified_diff(a_lines, b_lines, fromfile, tofile, fromfiledate, tofiledate, n, lineterm))
+    return '\n'.join(unified_diff(a.split('\n'), b.split('\n'),
+                                  fromfile, tofile, fromfiledate, tofiledate, n,
+                                  lineterm=''))
 
 def diff(a, b):
     if type(a) != type(b):

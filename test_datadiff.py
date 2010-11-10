@@ -37,8 +37,7 @@ def test_diff_multiline_strings():
         @@ -1,3 +1,2 @@
          abc
         -def
-         ghi
-    ''')
+         ghi''')
     print d
     print expected
     assert_equal(str(d), expected)
