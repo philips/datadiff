@@ -1,7 +1,11 @@
 import logging
 from difflib import SequenceMatcher, unified_diff
-from numbers import Number
 import sys
+try:
+    from numbers import Number
+except ImportError:
+    import types
+    Number = (complex, int, long, float)
 
 log = logging.getLogger('datadiff')
 

@@ -1,7 +1,6 @@
 from textwrap import dedent
 from datetime import datetime
-
-from six.syntax import print_
+import sys
 
 def assert_raises(exception_type, fn, *args, **kwargs):
     try:
@@ -73,7 +72,8 @@ def test_diff_objects():
     class Foo(object): pass
     try:
         diff(Foo(), Foo())
-    except Exception as e:
+    except Exception:
+        e = sys.exc_info()[1]
         assert_equal(type(e), DiffNotImplementedForType,
                      "Raised exception should be DiffNotImplementedForType")
         assert_equal(e.attempted_type, Foo)
@@ -83,7 +83,8 @@ def test_diff_objects():
 def test_diff_oneline_strings():
     try:
         diff('foobar', 'baz')
-    except Exception as e:
+    except Exception:
+        e = sys.exc_info()[1]
         assert_equal(type(e), DiffNotImplementedForType,
                      "Raised exception should be DiffNotImplementedForType")
         assert_equal(e.attempted_type, str)
@@ -394,13 +395,15 @@ def test_recursive_list():
 
 if __name__ == '__main__':
     try:
+        import nose
+    except (ImportError, SyntaxError, NameError):
+        pass
+    else:
         nose.main()
         sys.exit(0)
-    except (ImportError, SyntaxError):
-        pass
     
-    import types, sys
+    import types
     for fn_name, fn in sorted(locals().items()):
         if fn_name.startswith('test_') and type(fn) == types.FunctionType:
-            print_(fn_name, '...', file=sys.stderr)
+            sys.stderr.write(fn_name + '...\n')
             fn()
