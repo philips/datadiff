@@ -1,5 +1,7 @@
 import logging
 from difflib import SequenceMatcher, unified_diff
+from numbers import Number
+import sys
 
 log = logging.getLogger('datadiff')
 
@@ -142,7 +144,7 @@ def hashable(s):
     if type(s) == list:
         return tuple(s)
     elif type(s) == dict:
-        return frozenset(s.iteritems())
+        return frozenset(s.items())
     elif type(s) == set:
         return frozenset(s)
     else:
@@ -237,14 +239,16 @@ def diff_dict(a, b, context=3):
         if key not in a:
             diff.insert(dictitem((key, b[key])))
 
-    def diffitem_dictitem_cmp(diffitem1, diffitem2):
-        change1, dictitem1 = diffitem1
-        change2, dictitem2 = diffitem2
-        try:
-            return cmp(dictitem1[0], dictitem2[0])
-        except TypeError:
-            return 1 # whatever
-    diff.diffs.sort(cmp=diffitem_dictitem_cmp)
+    def diffitem_dictitem_sort_key(diffitem):
+        change, dictitem = diffitem
+        key = dictitem[0][0]
+        # use hash, to make sure its always orderable against other potential key types
+        basestring = basestring if sys.version[0] == 2 else str
+        if isinstance(key, basestring) or isinstance(key, Number):
+            return key
+        else:
+            return abs(hash(key)) # abs for consistency between py2/3, at least for datetime
+    diff.diffs.sort(key=diffitem_dictitem_sort_key)
 
     if context < 0:
         diff.context_end_container()

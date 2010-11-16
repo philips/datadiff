@@ -1,12 +1,73 @@
 from textwrap import dedent
 from datetime import datetime
 
-import nose
-from nose.tools import assert_equal, raises, assert_raises
+from six.syntax import print_
+
+def assert_raises(exception_type, fn, *args, **kwargs):
+    try:
+        fn(*args, **kwargs)
+    except exception_type:
+        pass
+    else:
+        raise AssertionError("Should've raised a {0}".format(exception_type))
+
+def assert_equal(a, b, msg=None):
+    if a != b:
+        raise AssertionError(msg or '{0} != {1}'.format(a, b))
+
+# copied from nose.tools
+def make_decorator(func):
+    """
+    Wraps a test decorator so as to properly replicate metadata
+    of the decorated function, including nose's additional stuff
+    (namely, setup and teardown).
+    """
+    def decorate(newfunc):
+        name = func.__name__
+        try:
+            newfunc.__dict__ = func.__dict__
+            newfunc.__doc__ = func.__doc__
+            newfunc.__module__ = func.__module__
+            #if not hasattr(newfunc, 'compat_co_firstlineno'):
+            #    newfunc.compat_co_firstlineno = func.func_code.co_firstlineno
+            newfunc.__name__ = name
+        except TypeError:
+            # can't set func name in 2.3
+            newfunc.compat_func_name = name
+        return newfunc
+    return decorate
+
+# copied from nose.tools
+def raises(*exceptions):
+    """Test must raise one of expected exceptions to pass. Example use::
+
+      @raises(TypeError, ValueError)
+      def test_raises_type_error():
+          raise TypeError("This test passes")
+
+      @raises(Exception):
+      def test_that_fails_by_passing():
+          pass
+    """
+    valid = ' or '.join([e.__name__ for e in exceptions])
+    def decorate(func):
+        name = func.__name__
+        def newfunc(*arg, **kw):
+            try:
+                func(*arg, **kw)
+            except exceptions:
+                pass
+            except:
+                raise
+            else:
+                message = "%s() did not raise %s" % (name, valid)
+                raise AssertionError(message)
+        newfunc = make_decorator(func)(newfunc)
+        return newfunc
+    return decorate
+
 
 from datadiff import diff, DataDiff, NotHashable, DiffNotImplementedForType
-
-if __name__ == '__main__': nose.main()
 
 def test_diff_objects():
     class Foo(object): pass
@@ -38,8 +99,6 @@ def test_diff_multiline_strings():
          abc
         -def
          ghi''')
-    print d
-    print expected
     assert_equal(str(d), expected)
 
 def test_diff_list():
@@ -60,8 +119,6 @@ def test_diff_list():
         -5,
         +6,
         ]''')
-    print d
-    print expected
     assert_equal(str(d), expected)
 
 def test_diff_list_context():
@@ -90,8 +147,6 @@ def test_diff_list_context():
          1,
         @@  @@
         ]''')
-    print d
-    print expected
     assert_equal(str(d), expected)
 
 def test_diff_list_2nd_longer():
@@ -107,8 +162,6 @@ def test_diff_list_2nd_longer():
         +4,
         +5,
         ]''')
-    print d
-    print expected
     assert_equal(str(d), expected)
 
 def test_diff_list_list():
@@ -145,15 +198,17 @@ def test_diff_list_set():
     a = [1, set([8, 9]), 4]
     b = [1, 4]
     d = diff(a, b)
+    # support 3.0/2.7 set literals, and <2.7
+    set_start, set_end = repr(set([0])).split('0')
     expected = dedent('''\
         --- a
         +++ b
         [
         @@ -0,2 +0,1 @@
          1,
-        -set([8, 9]),
+        -%s8, 9%s,
          4,
-        ]''')
+        ]''') % (set_start, set_end)
     assert_equal(str(d), expected)
 
 def test_diff_seq_objects():
@@ -176,8 +231,6 @@ def test_diff_seq_objects():
          1,
         +2,
         ])''')
-    print d
-    print expected
     assert_equal(str(d), expected)
 
 def test_diff_almost_seq_objects():
@@ -206,7 +259,6 @@ def test_diff_dict():
     a = dict(zero=0,   one=1, two=2, three=3,         nine=9, ten=10)
     b = dict(zero='@', one=1,        three=3, four=4, nine=9, ten=10)
     d = diff(a, b)
-    print d
     expected = dedent('''\
         --- a
         +++ b
@@ -220,14 +272,12 @@ def test_diff_dict():
         +'zero': '@',
         @@  @@
         }''')
-    print expected
     assert_equal(str(d), expected)
 
 def test_diff_dict_keytypes():
     a = {}
     b = {datetime(2010,10,28): 1, True: 1, 2: 2}
     d = diff(a, b)
-    print d
     expected = dedent('''\
         --- a
         +++ b
@@ -236,7 +286,6 @@ def test_diff_dict_keytypes():
         +2: 2,
         +datetime.datetime(2010, 10, 28, 0, 0): 1,
         }''')
-    print expected
     assert_equal(str(d), expected)
 
 def test_diff_dict_complex():
@@ -250,15 +299,12 @@ def test_diff_dict_complex():
          'a': 1,
         -'b': {'foo': 'bar'},
         }''')
-    print d
-    print expected
     assert_equal(str(d), expected)
 
 def test_diff_set(set_type=set):
     a = set_type([1, 3, 5, 7, 'abc', 'def'])
     b = set_type(['qwert', 3, 7, 'abc'])
     d = diff(a, b)
-    print d
     expected = dedent('''\
         --- a
         +++ b
@@ -271,14 +317,12 @@ def test_diff_set(set_type=set):
          'abc',
          7,
         ])''') % set_type.__name__
-    print expected
     assert_equal(str(d), expected)
 
 def test_diff_set_context():
     a = set([1, 2, 3, 4, 5, 6, 7, 8, 9])
     b = set([1, 2, 3, 4, 5, 6, 7, 8])
     d = diff(a, b)
-    print d
     expected = dedent('''\
         --- a
         +++ b
@@ -289,7 +333,6 @@ def test_diff_set_context():
          3,
         @@  @@
         ])''')
-    print expected
     assert_equal(str(d), expected)
 
 def test_diff_frozenset():
@@ -331,7 +374,6 @@ def test_recursive_list():
     a = [1, [7, 8, 9, 10, 11], 3]
     b = [1, [7, 8,    10, 11], 3]
     d = diff(a, b)
-    print d
     expected = dedent('''\
         --- a
         +++ b
@@ -348,5 +390,17 @@ def test_recursive_list():
          ],
          3,
         ]''')
-    print expected
     assert_equal(str(d), expected)
+
+if __name__ == '__main__':
+    try:
+        nose.main()
+        sys.exit(0)
+    except (ImportError, SyntaxError):
+        pass
+    
+    import types, sys
+    for fn_name, fn in sorted(locals().items()):
+        if fn_name.startswith('test_') and type(fn) == types.FunctionType:
+            print_(fn_name, '...', file=sys.stderr)
+            fn()
