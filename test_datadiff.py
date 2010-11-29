@@ -1,6 +1,7 @@
 from textwrap import dedent
 from datetime import datetime
 import sys
+import re
 
 def assert_raises(exception_type, fn, *args, **kwargs):
     try:
@@ -67,6 +68,11 @@ def raises(*exceptions):
 
 
 from datadiff import diff, DataDiff, NotHashable, DiffNotImplementedForType
+
+def test_parse_version_from_setup():
+    from datadiff import parse_version_from_setup
+    v = parse_version_from_setup()
+    assert re.match('[0-9]+\.[0-9]+\.[0-9]+', v), v
 
 def test_diff_objects():
     class Foo(object): pass

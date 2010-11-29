@@ -1,13 +1,50 @@
+"""
+Copyright 2010 Dave Brondsema
+
+Licensed under the Apache License, Version 2.0 (the "License");
+you may not use this file except in compliance with the License.
+You may obtain a copy of the License at
+
+  http://www.apache.org/licenses/LICENSE-2.0
+
+Unless required by applicable law or agreed to in writing, software
+distributed under the License is distributed on an "AS IS" BASIS,
+WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+See the License for the specific language governing permissions and
+limitations under the License.
+"""
+
 import logging
 from difflib import SequenceMatcher, unified_diff
 import sys
+import os
 try:
     from numbers import Number
 except ImportError:
     import types
     Number = (complex, int, long, float)
 
+
 log = logging.getLogger('datadiff')
+
+
+def parse_version_from_setup():
+    _setup = open(os.path.join(os.path.dirname(__file__), '../setup.py'))
+    for line in _setup:
+        if 'version' in line:
+            version = line.split('=')[1].strip(", '\n")
+            break
+    _setup.close()
+    return version
+try:
+    import pkg_resources
+    __version__ = pkg_resources.require("datadiff")[0].version
+except:
+    try:
+        __version__ = parse_version_from_setup
+    except:
+        __version__ = None
+
 
 
 """
