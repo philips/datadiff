@@ -1,6 +1,6 @@
 '''
 DataDiff
-~~~~~~
+========
 
 DataDiff is a library to provide human-readable diffs of python data structures.
 It can handle sequence types (lists, tuples, etc), sets, and dictionaries.
@@ -13,7 +13,7 @@ Lists will be diffed recursively, when applicable.
 DataDiff project homepage: http://sourceforge.net/projects/datadiff/
 
 Example
---------
+-------
 
 Here's an example::
 
