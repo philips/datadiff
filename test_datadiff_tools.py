@@ -17,6 +17,7 @@ def test_assert_equal_false():
         e = sys.exc_info()[1]
         assert_equal(type(e), AssertionError)
         assert_equal(str(e), dedent('''\
+            
             --- a
             +++ b
             [

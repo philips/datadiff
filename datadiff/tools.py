@@ -25,7 +25,7 @@ def assert_equal(first, second, msg=None):
     if first == second:
         return
     if msg is None:
-        msg = diff(first, second)    
+        msg = "\n" + str(diff(first, second))
     raise AssertionError(msg)
 
 assert_equals = assert_equal
