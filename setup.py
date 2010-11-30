@@ -54,10 +54,12 @@ limitations under the License.
 
 from distutils.core import setup
 import setuptools # for extra commands
+
+from datadiff import version
 setup(
     name = 'datadiff',
     packages = ['datadiff'],
-    version = '1.0.0',
+    version = version.__version__,
     description = 'DataDiff is a library to provide human-readable diffs of python data structures.',
     long_description = __doc__,
     author = 'Dave Brondsema',

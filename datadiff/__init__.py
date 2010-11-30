@@ -24,26 +24,9 @@ except ImportError:
     import types
     Number = (complex, int, long, float)
 
+from .version import __version_info__, __version__
 
 log = logging.getLogger('datadiff')
-
-
-def parse_version_from_setup():
-    _setup = open(os.path.join(os.path.dirname(__file__), '../setup.py'))
-    for line in _setup:
-        if 'version' in line:
-            version = line.split('=')[1].strip(", '\n")
-            break
-    _setup.close()
-    return version
-try:
-    import pkg_resources
-    __version__ = pkg_resources.require("datadiff")[0].version
-except:
-    try:
-        __version__ = parse_version_from_setup
-    except:
-        __version__ = None
 
 
 
