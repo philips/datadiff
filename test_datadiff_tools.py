@@ -44,6 +44,29 @@ def test_assert_equal_msg():
 def test_assert_equals():
     assert_equal(tools.assert_equal, tools.assert_equals)
 
+def test_assert_equal_simple():
+    try:
+        tools.assert_equals(True, False)
+    except:
+        e = sys.exc_info()[1]
+        assert_equal(type(e), AssertionError)
+        assert_equal(str(e), dedent('''\
+            True != False'''))
+    else:
+        raise AssertionError("Should've raised an AssertionError")
+
+def test_assert_equal_simple_types():
+    try:
+        tools.assert_equals('a', 7)
+    except:
+        e = sys.exc_info()[1]
+        assert_equal(type(e), AssertionError)
+        assert_equal(str(e), dedent('''\
+            'a' != 7'''))
+    else:
+        raise AssertionError("Should've raised an AssertionError")
+
+
 if __name__ == '__main__':
     try:
         import nose

@@ -17,7 +17,7 @@ limitations under the License.
 import logging
 log = logging.getLogger('datadiff.tools')
 
-from datadiff import diff
+from datadiff import diff, DiffTypeError
 
 # drop-in replacements for http://somethingaboutorange.com/mrl/projects/nose/doc/module_nose.tools.html
 
@@ -25,7 +25,12 @@ def assert_equal(first, second, msg=None):
     if first == second:
         return
     if msg is None:
-        msg = "\n" + str(diff(first, second))
+        try:
+            ddiff = diff(first, second)
+        except DiffTypeError:
+            msg = '%r != %r' % (first, second)
+        else:
+            msg = "\n" + str(ddiff)
     raise AssertionError(msg)
 
 assert_equals = assert_equal
