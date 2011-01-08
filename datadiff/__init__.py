@@ -39,38 +39,39 @@ For each type, we need:
 
 class NotHashable(TypeError): pass
 class NotSequence(TypeError): pass
-class DiffNotImplementedForType(TypeError):
+class DiffTypeError(TypeError): pass
+class DiffNotImplementedForType(DiffTypeError):
     def __init__(self, attempted_type):
         self.attempted_type = attempted_type
     def __str__(self):
         return "diff() not implemented for %s" % self.attempted_type
 
-def unified_diff_strings(a, b, fromfile='', tofile='', fromfiledate='', tofiledate='', n=3):
+def unified_diff_strings(a, b, fromfile='', tofile='', fromfiledate='', tofiledate='', context=3):
     """
     Wrapper around difflib.unified_diff that accepts 'a' and 'b' as multi-line strings
     and returns a multi-line string, instead of lists of strings.
     """
     return '\n'.join(unified_diff(a.split('\n'), b.split('\n'),
-                                  fromfile, tofile, fromfiledate, tofiledate, n,
+                                  fromfile, tofile, fromfiledate, tofiledate, context,
                                   lineterm=''))
 
-def diff(a, b):
+def diff(a, b, context=3, depth=0):
     if type(a) != type(b):
-        raise TypeError('Types differ: a=%s b=%s Values of a and b are: %r, %r' % (type(a), type(b), a, b))
+        raise DiffTypeError('Types differ: a=%s b=%s  Values of a and b are: %r, %r' % (type(a), type(b), a, b))
     if type(a) == str:
         # special cases
         if '\n' in a or '\n' in b:
-            return unified_diff_strings(a, b, fromfile='a', tofile='b')
+            return unified_diff_strings(a, b, fromfile='a', tofile='b', context=context)
         else:
             # even though technically it is a sequence,
             # we don't want to diff char-by-char
             raise DiffNotImplementedForType(str)
     if type(a) == dict:
-        return diff_dict(a, b)
+        return diff_dict(a, b, context, depth)
     if hasattr(a, 'intersection') and hasattr(a, 'difference'):
-        return diff_set(a, b)
+        return diff_set(a, b, context, depth)
     try:
-        return try_diff_seq(a, b)
+        return try_diff_seq(a, b, context, depth)
     except NotSequence:
         raise DiffNotImplementedForType(type(a))
 
@@ -121,11 +122,11 @@ class DataDiff(object):
     def __str__(self):
         return self.stringify()
         
-    def stringify(self, depth=0):
+    def stringify(self, depth=0, include_preamble=True):
         if not self.diffs:
             return ''
         output = []
-        if depth == 0:
+        if depth == 0 and include_preamble:
             output.append('--- a')
             output.append('+++ b')
         output.append(' '*depth + self.type_start_str)
@@ -178,20 +179,20 @@ def hashable(s):
             raise NotHashable("Not a hashable type (and it needs to be, for its parent diff): %s" % s)
         return s
 
-def try_diff_seq(a, b, context=3):
+def try_diff_seq(a, b, context=3, depth=0):
     """
     Safe to try any containers with this function, to see if it might be a sequence
     Raises TypeError if its not a sequence
     """
     try:
-        return diff_seq(a, b, context)
+        return diff_seq(a, b, context, depth)
     except NotHashable:
         raise
     except:
         log.debug('tried SequenceMatcher but got error', exc_info=True)
         raise NotSequence("Cannot use SequenceMatcher on %s" % type(a))
 
-def diff_seq(a, b, context=3):
+def diff_seq(a, b, context=3, depth=0):
     if not hasattr(a, '__iter__') and not hasattr(a, '__getitem__'):
         raise NotSequence("Not a sequence %s" % type(a))
     hashable_a = [hashable(_) for _ in a]
@@ -212,13 +213,13 @@ def diff_seq(a, b, context=3):
                 consecutive_inserts = []
                 for a2, b2 in zip(a[i1:i2], b[j1:j2]):
                     try:
-                        nested_diff = diff(a2, b2)
+                        nested_diff = diff(a2, b2, context, depth+1)
                         ddiff.delete_multi(consecutive_deletes)
                         ddiff.insert_multi(consecutive_inserts)
                         consecutive_deletes = []
                         consecutive_inserts = []
                         ddiff.nested(nested_diff)
-                    except DiffNotImplementedForType:
+                    except DiffTypeError:
                         consecutive_deletes.append(a2)
                         consecutive_inserts.append(b2)
                 
@@ -245,26 +246,38 @@ def diff_seq(a, b, context=3):
 
 class dictitem(tuple):
     def __repr__(self):
-        return "%r: %r" % (self[0], self[1])
+        key, val = self
+        if type(val) == DataDiff:
+            diff_val = val.stringify(depth=self.depth, include_preamble=False)
+            return "%r: %s" % (key, diff_val.strip())
+        return "%r: %r" % (key, val)
 
-def diff_dict(a, b, context=3):
-    diff = DataDiff(dict, '{', '}')
+def diff_dict(a, b, context=3, depth=0):
+    ddiff = DataDiff(dict, '{', '}')
     for key in a.keys():
         if key not in b:
-            diff.delete(dictitem((key, a[key])))
+            ddiff.delete(dictitem((key, a[key])))
         elif a[key] != b[key]:
-            diff.delete(dictitem((key, a[key])))
-            diff.insert(dictitem((key, b[key])))
+            try:
+                nested_diff = diff(a[key], b[key], context, depth+1)
+                nested_item = dictitem((key, nested_diff))
+                nested_item.depth = depth+1
+                ddiff.equal(nested_item) ########### not really equal
+            except DiffTypeError:
+                ddiff.delete(dictitem((key, a[key])))
+                ddiff.insert(dictitem((key, b[key])))
         else:
             if context:
-                diff.equal(dictitem((key, a[key])))
+                ddiff.equal(dictitem((key, a[key])))
             context -= 1
     for key in b:
         if key not in a:
-            diff.insert(dictitem((key, b[key])))
+            ddiff.insert(dictitem((key, b[key])))
 
     def diffitem_dictitem_sort_key(diffitem):
         change, dictitem = diffitem
+        if type(dictitem) == DataDiff:
+            return 0
         key = dictitem[0][0]
         # use hash, to make sure its always orderable against other potential key types
         basestring = basestring if sys.version[0] == 2 else str
@@ -272,19 +285,19 @@ def diff_dict(a, b, context=3):
             return key
         else:
             return abs(hash(key)) # abs for consistency between py2/3, at least for datetime
-    diff.diffs.sort(key=diffitem_dictitem_sort_key)
+    ddiff.diffs.sort(key=diffitem_dictitem_sort_key)
 
     if context < 0:
-        diff.context_end_container()
+        ddiff.context_end_container()
 
-    return diff
+    return ddiff
 
-def diff_set(a, b, context=3):
-    diff = DataDiff(type(a))
-    diff.delete_multi(a - b)
-    diff.insert_multi(b - a)
+def diff_set(a, b, context=3, depth=0):
+    ddiff = DataDiff(type(a))
+    ddiff.delete_multi(a - b)
+    ddiff.insert_multi(b - a)
     equal = list(a.intersection(b))
-    diff.equal_multi(equal[:context])
+    ddiff.equal_multi(equal[:context])
     if len(equal) > context:
-        diff.context_end_container()
-    return diff
+        ddiff.context_end_container()
+    return ddiff

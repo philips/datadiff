@@ -5,7 +5,7 @@ import re
 
 from nose.tools import assert_raises, assert_equal, raises
 
-from datadiff import diff, DataDiff, NotHashable, DiffNotImplementedForType
+from datadiff import diff, DataDiff, NotHashable, DiffNotImplementedForType, DiffTypeError
 
 def test_diff_objects():
     class Foo(object): pass
@@ -180,7 +180,7 @@ def test_diff_almost_seq_objects():
         def __iter__(self):
             return iter(self.list)
     
-    assert_raises(TypeError, diff, FooSeq([1]), FooSeq([1,2]))
+    assert_raises(DiffTypeError, diff, FooSeq([1]), FooSeq([1,2]))
   
 def test_tuple():
     d = diff((1,2), (1,3))
@@ -292,7 +292,7 @@ def test_equal():
     d = diff([1], [1])
     assert_equal(str(d), '')
 
-@raises(TypeError)
+@raises(DiffTypeError)
 def test_diff_types():
     d = diff([1], {1:1})
 
@@ -330,4 +330,44 @@ def test_recursive_list():
          ],
          3,
         ]''')
+    assert_equal(str(d), expected)
+    
+def test_recursive_tuple_different_types():
+    a = (1, (7, 8,  9, 10, 11), 3)
+    b = (1, (7, 8, 'a', 10, 11), 3)
+    d = diff(a, b)
+    expected = dedent('''\
+        --- a
+        +++ b
+        (
+        @@ -0,2 +0,2 @@
+         1,
+         (
+         @@ -0,4 +0,4 @@
+          7,
+          8,
+         -9,
+         +'a',
+          10,
+          11,
+         ),
+         3,
+        )''')
+    assert_equal(str(d), expected)
+    
+def test_recursive_dict():
+    a = dict(a=1, b=dict(foo=17, bar=19), c=3)
+    b = dict(a=1, b=dict(foo=17,       ), c=3)
+    d = diff(a, b)
+    expected = dedent('''\
+        --- a
+        +++ b
+        {
+         'a': 1,
+         'b': {
+         -'bar': 19,
+          'foo': 17,
+         },
+         'c': 3,
+        }''')
     assert_equal(str(d), expected)
