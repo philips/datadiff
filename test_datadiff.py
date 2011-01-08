@@ -3,69 +3,7 @@ from datetime import datetime
 import sys
 import re
 
-def assert_raises(exception_type, fn, *args, **kwargs):
-    try:
-        fn(*args, **kwargs)
-    except exception_type:
-        pass
-    else:
-        raise AssertionError("Should've raised a {0}".format(exception_type))
-
-def assert_equal(a, b, msg=None):
-    if a != b:
-        raise AssertionError(msg or '{0} != {1}'.format(a, b))
-
-# copied from nose.tools
-def make_decorator(func):
-    """
-    Wraps a test decorator so as to properly replicate metadata
-    of the decorated function, including nose's additional stuff
-    (namely, setup and teardown).
-    """
-    def decorate(newfunc):
-        name = func.__name__
-        try:
-            newfunc.__dict__ = func.__dict__
-            newfunc.__doc__ = func.__doc__
-            newfunc.__module__ = func.__module__
-            #if not hasattr(newfunc, 'compat_co_firstlineno'):
-            #    newfunc.compat_co_firstlineno = func.func_code.co_firstlineno
-            newfunc.__name__ = name
-        except TypeError:
-            # can't set func name in 2.3
-            newfunc.compat_func_name = name
-        return newfunc
-    return decorate
-
-# copied from nose.tools
-def raises(*exceptions):
-    """Test must raise one of expected exceptions to pass. Example use::
-
-      @raises(TypeError, ValueError)
-      def test_raises_type_error():
-          raise TypeError("This test passes")
-
-      @raises(Exception):
-      def test_that_fails_by_passing():
-          pass
-    """
-    valid = ' or '.join([e.__name__ for e in exceptions])
-    def decorate(func):
-        name = func.__name__
-        def newfunc(*arg, **kw):
-            try:
-                func(*arg, **kw)
-            except exceptions:
-                pass
-            except:
-                raise
-            else:
-                message = "%s() did not raise %s" % (name, valid)
-                raise AssertionError(message)
-        newfunc = make_decorator(func)(newfunc)
-        return newfunc
-    return decorate
-
+from nose.tools import assert_raises, assert_equal, raises
 
 from datadiff import diff, DataDiff, NotHashable, DiffNotImplementedForType
 
@@ -393,18 +331,3 @@ def test_recursive_list():
          3,
         ]''')
     assert_equal(str(d), expected)
-
-if __name__ == '__main__':
-    try:
-        import nose
-    except (ImportError, SyntaxError, NameError):
-        pass
-    else:
-        nose.main()
-        sys.exit(0)
-    
-    import types
-    for fn_name, fn in sorted(locals().items()):
-        if fn_name.startswith('test_') and type(fn) == types.FunctionType:
-            sys.stderr.write(fn_name + '...\n')
-            fn()
