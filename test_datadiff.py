@@ -7,6 +7,10 @@ from nose.tools import assert_raises, assert_equal, raises
 
 from datadiff import diff, DataDiff, NotHashable, DiffNotImplementedForType, DiffTypeError
 
+# support 3.0/2.7 set literals, and <2.7
+set_start, set_end = repr(set([0])).split('0')
+frozenset_start, frozenset_end = repr(frozenset([0])).split('0')
+
 def test_diff_objects():
     class Foo(object): pass
     try:
@@ -138,8 +142,6 @@ def test_diff_list_set():
     a = [1, set([8, 9]), 4]
     b = [1, 4]
     d = diff(a, b)
-    # support 3.0/2.7 set literals, and <2.7
-    set_start, set_end = repr(set([0])).split('0')
     expected = dedent('''\
         --- a
         +++ b
@@ -370,4 +372,21 @@ def test_recursive_dict():
          },
          'c': 3,
         }''')
+    assert_equal(str(d), expected)
+    
+def test_recursive_set():
+    a = set([1, 2, frozenset([3, 4, 5]), 8])
+    b = set([1, 2, frozenset([3, 2, 5]), 8])
+    d = diff(a, b)
+    expected = dedent('''\
+        --- a
+        +++ b
+        set([
+        -%s3, 4, 5%s,
+        +%s2, 3, 5%s,
+         8,
+         1,
+         2,
+        ])''' % (frozenset_start, frozenset_end,
+                 frozenset_start, frozenset_end))
     assert_equal(str(d), expected)
