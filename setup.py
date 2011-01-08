@@ -55,7 +55,7 @@ limitations under the License.
 from distutils.core import setup
 import setuptools # for extra commands
 
-exec open('datadiff/version.py')
+exec(open('datadiff/version.py').read())
 setup(
     name = 'datadiff',
     packages = ['datadiff'],
