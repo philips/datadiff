@@ -166,18 +166,28 @@ class DataDiff(object):
         return bool([d for d in self.diffs if d[0] != 'equal'])
 
 def hashable(s):
-    if type(s) == list:
-        return tuple(s)
-    elif type(s) == dict:
-        return frozenset(s.items())
-    elif type(s) == set:
-        return frozenset(s)
+    try:
+        # convert top-level container
+        if type(s) == list:
+            ret = tuple(s)
+        elif type(s) == dict:
+            ret = frozenset(hashable(_) for _ in s.items())
+        elif type(s) == set:
+            ret = frozenset(s)
+        else:
+            ret = s
+        
+        # make it recursive
+        if type(ret) == tuple:
+            ret = tuple(hashable(_) for _ in ret)
+        
+        # validate
+        hash(ret)
+    except TypeError:
+        log.debug('hashable error', exc_info=True)
+        raise NotHashable("Hashable type required (for parent diff) but got %s with value %r" % (type(s), s))
     else:
-        try:
-            hash(s)
-        except TypeError:
-            raise NotHashable("Not a hashable type (and it needs to be, for its parent diff): %s" % s)
-        return s
+        return ret
 
 def try_diff_seq(a, b, context=3, depth=0):
     """

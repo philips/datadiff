@@ -390,3 +390,45 @@ def test_recursive_set():
         ])''' % (frozenset_start, frozenset_end,
                  frozenset_start, frozenset_end))
     assert_equal(str(d), expected)
+
+def test_nested_unhashable():
+    # dict is unhashable, and nested in a list
+    a = [('Wiki.test', dict(user_id='badf00d', mount_point='Wiki'))]
+    b = [('Wiki.test', dict(user_id='abc'))]
+    d = diff(a, b)
+    expected = dedent('''\
+        --- a
+        +++ b
+        [
+        @@ -0 +0 @@
+         (
+         @@ -0,1 +0,1 @@
+          'Wiki.test',
+           {
+          -'mount_point': 'Wiki',
+          -'user_id': 'badf00d',
+          +'user_id': 'abc',
+          },
+         ),
+        ]''')
+    assert_equal(str(d), expected)
+
+def test_nested_unhashable2():
+    # dict is unhashable, and nested in another dict
+    a = [dict(foo = dict(user_id='badf00d', mount_point='Wiki'))]
+    b = [dict(foo = dict(mount_point='Wikiiii'))]
+    d = diff(a, b)
+    expected = dedent('''\
+        --- a
+        +++ b
+        [
+        @@ -0 +0 @@
+         {
+          'foo': {
+          -'mount_point': 'Wiki',
+          +'mount_point': 'Wikiiii',
+          -'user_id': 'badf00d',
+          },
+         },
+        ]''')
+    assert_equal(str(d), expected)
