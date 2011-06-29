@@ -55,31 +55,33 @@ def unified_diff_strings(a, b, fromfile='', tofile='', fromfiledate='', tofileda
                                   fromfile, tofile, fromfiledate, tofiledate, context,
                                   lineterm=''))
 
-def diff(a, b, context=3, depth=0):
+def diff(a, b, context=3, depth=0, fromfile='a', tofile='b'):
     if type(a) != type(b):
-        raise DiffTypeError('Types differ: a=%s b=%s  Values of a and b are: %r, %r' % (type(a), type(b), a, b))
+        raise DiffTypeError('Types differ: %s=%s %s=%s  Values of a and b are: %r, %r' % (fromfile, tofile, type(a), type(b), a, b))
     if type(a) == str:
         # special cases
         if '\n' in a or '\n' in b:
-            return unified_diff_strings(a, b, fromfile='a', tofile='b', context=context)
+            return unified_diff_strings(a, b, fromfile=fromfile, tofile=tofile, context=context)
         else:
             # even though technically it is a sequence,
             # we don't want to diff char-by-char
             raise DiffNotImplementedForType(str)
     if type(a) == dict:
-        return diff_dict(a, b, context, depth)
+        return diff_dict(a, b, context, depth, fromfile=fromfile, tofile=tofile)
     if hasattr(a, 'intersection') and hasattr(a, 'difference'):
-        return diff_set(a, b, context, depth)
+        return diff_set(a, b, context, depth, fromfile=fromfile, tofile=tofile)
     try:
-        return try_diff_seq(a, b, context, depth)
+        return try_diff_seq(a, b, context, depth, fromfile=fromfile, tofile=tofile)
     except NotSequence:
         raise DiffNotImplementedForType(type(a))
 
 class DataDiff(object):
     
-    def __init__(self, datatype, type_start_str=None, type_end_str=None):
+    def __init__(self, datatype, type_start_str=None, type_end_str=None, fromfile='a', tofile='b'):
         self.diffs = []
         self.datatype = datatype
+        self.fromfile = fromfile
+        self.tofile = tofile
         if type_end_str is None:
             if type_start_str is not None:
                 raise Exception("Must specify both type_start_str and type_end_str, or neither")
@@ -127,8 +129,8 @@ class DataDiff(object):
             return ''
         output = []
         if depth == 0 and include_preamble:
-            output.append('--- a')
-            output.append('+++ b')
+            output.append('--- %s' % self.fromfile)
+            output.append('+++ %s' % self.tofile)
         output.append(' '*depth + self.type_start_str)
         for change, items in self.diffs:
             if change == 'context':
@@ -189,31 +191,31 @@ def hashable(s):
     else:
         return ret
 
-def try_diff_seq(a, b, context=3, depth=0):
+def try_diff_seq(a, b, context=3, depth=0, fromfile='a', tofile='b'):
     """
     Safe to try any containers with this function, to see if it might be a sequence
     Raises TypeError if its not a sequence
     """
     try:
-        return diff_seq(a, b, context, depth)
+        return diff_seq(a, b, context, depth, fromfile=fromfile, tofile=tofile)
     except NotHashable:
         raise
     except:
         log.debug('tried SequenceMatcher but got error', exc_info=True)
         raise NotSequence("Cannot use SequenceMatcher on %s" % type(a))
 
-def diff_seq(a, b, context=3, depth=0):
+def diff_seq(a, b, context=3, depth=0, fromfile='a', tofile='b'):
     if not hasattr(a, '__iter__') and not hasattr(a, '__getitem__'):
         raise NotSequence("Not a sequence %s" % type(a))
     hashable_a = [hashable(_) for _ in a]
     hashable_b = [hashable(_) for _ in b]
     sm = SequenceMatcher(a = hashable_a, b = hashable_b)
     if type(a) == tuple:
-        ddiff = DataDiff(tuple, '(', ')')
+        ddiff = DataDiff(tuple, '(', ')', fromfile=fromfile, tofile=tofile)
     elif type(b) == list:
-        ddiff = DataDiff(list, '[', ']')
+        ddiff = DataDiff(list, '[', ']', fromfile=fromfile, tofile=tofile)
     else:
-        ddiff = DataDiff(type(a))
+        ddiff = DataDiff(type(a), fromfile=fromfile, tofile=tofile)
     for chunk in sm.get_grouped_opcodes(context):
         ddiff.context(max(chunk[0][1]-1,0), max(chunk[-1][2]-1, 0),
                      max(chunk[0][3]-1,0), max(chunk[-1][4]-1, 0))
@@ -262,8 +264,8 @@ class dictitem(tuple):
             return "%r: %s" % (key, diff_val.strip())
         return "%r: %r" % (key, val)
 
-def diff_dict(a, b, context=3, depth=0):
-    ddiff = DataDiff(dict, '{', '}')
+def diff_dict(a, b, context=3, depth=0, fromfile='a', tofile='b'):
+    ddiff = DataDiff(dict, '{', '}', fromfile=fromfile, tofile=tofile)
     for key in a.keys():
         if key not in b:
             ddiff.delete(dictitem((key, a[key])))
@@ -302,8 +304,8 @@ def diff_dict(a, b, context=3, depth=0):
 
     return ddiff
 
-def diff_set(a, b, context=3, depth=0):
-    ddiff = DataDiff(type(a))
+def diff_set(a, b, context=3, depth=0, fromfile='b', tofile='a'):
+    ddiff = DataDiff(type(a), fromfile=fromfile, tofile=tofile)
     ddiff.delete_multi(a - b)
     ddiff.insert_multi(b - a)
     equal = list(a.intersection(b))

@@ -14,7 +14,7 @@ frozenset_start, frozenset_end = repr(frozenset([0])).split('0')
 def test_diff_objects():
     class Foo(object): pass
     try:
-        diff(Foo(), Foo())
+        diff(Foo(), Foo(), fromfile="x", tofile="y")
     except Exception:
         e = sys.exc_info()[1]
         assert_equal(type(e), DiffNotImplementedForType,
@@ -25,7 +25,7 @@ def test_diff_objects():
 
 def test_diff_oneline_strings():
     try:
-        diff('foobar', 'baz')
+        diff('foobar', 'baz', fromfile="x", tofile="y")
     except Exception:
         e = sys.exc_info()[1]
         assert_equal(type(e), DiffNotImplementedForType,
@@ -35,10 +35,10 @@ def test_diff_oneline_strings():
         raise AssertionError("Should've raised a DiffNotImplementedForType")
 
 def test_diff_multiline_strings():
-    d = diff('abc\ndef\nghi', 'abc\nghi')
+    d = diff('abc\ndef\nghi', 'abc\nghi', fromfile="x", tofile="y")
     expected = dedent('''\
-        --- a 
-        +++ b 
+        --- x 
+        +++ y 
         @@ -1,3 +1,2 @@
          abc
         -def
@@ -48,10 +48,10 @@ def test_diff_multiline_strings():
 def test_diff_list():
     a = [1,'xyz', 2, 3, 4, 5]
     b = [1,'abc', 2, 4, 6]
-    d = diff(a, b)
+    d = diff(a, b, fromfile="x", tofile="y")
     expected = dedent('''\
-        --- a
-        +++ b
+        --- x
+        +++ y
         [
         @@ -0,5 +0,4 @@
          1,
@@ -68,10 +68,10 @@ def test_diff_list():
 def test_diff_list_context():
     a = [1]*50 + [2, 3, 4, 5, 6, 7, 8] + [1]*10
     b = [1]*50 + [3, 9, 10] + [1]*10
-    d = diff(a, b)
+    d = diff(a, b, fromfile="x", tofile="y")
     expected = dedent('''\
-        --- a
-        +++ b
+        --- x
+        +++ y
         [
         @@ -46,59 +46,55 @@
          1,
@@ -96,10 +96,10 @@ def test_diff_list_context():
 def test_diff_list_2nd_longer():
     a = [3]
     b = [4, 5]
-    d = diff(a, b)
+    d = diff(a, b, fromfile="x", tofile="y")
     expected = dedent('''\
-        --- a
-        +++ b
+        --- x
+        +++ y
         [
         @@ -0 +0,1 @@
         -3,
@@ -111,10 +111,10 @@ def test_diff_list_2nd_longer():
 def test_diff_list_list():
     a = [1, [2, 3], 4]
     b = [1, 4]
-    d = diff(a, b)
+    d = diff(a, b, fromfile="x", tofile="y")
     expected = dedent('''\
-        --- a
-        +++ b
+        --- x
+        +++ y
         [
         @@ -0,2 +0,1 @@
          1,
@@ -126,10 +126,10 @@ def test_diff_list_list():
 def test_diff_list_dict():
     a = [1, {'a': 'b'}, 4]
     b = [1, 4]
-    d = diff(a, b)
+    d = diff(a, b, fromfile="x", tofile="y")
     expected = dedent('''\
-        --- a
-        +++ b
+        --- x
+        +++ y
         [
         @@ -0,2 +0,1 @@
          1,
@@ -141,10 +141,10 @@ def test_diff_list_dict():
 def test_diff_list_set():
     a = [1, set([8, 9]), 4]
     b = [1, 4]
-    d = diff(a, b)
+    d = diff(a, b, fromfile="x", tofile="y")
     expected = dedent('''\
-        --- a
-        +++ b
+        --- x
+        +++ y
         [
         @@ -0,2 +0,1 @@
          1,
@@ -164,10 +164,10 @@ def test_diff_seq_objects():
         def __getitem__(self, x):
             return self.list[x]
     
-    d = diff(FooSeq([1]), FooSeq([1,2]))
+    d = diff(FooSeq([1]), FooSeq([1,2]), fromfile="x", tofile="y")
     expected = dedent('''\
-        --- a
-        +++ b
+        --- x
+        +++ y
         FooSeq([
         @@ -0 +0,1 @@
          1,
@@ -185,10 +185,10 @@ def test_diff_almost_seq_objects():
     assert_raises(DiffTypeError, diff, FooSeq([1]), FooSeq([1,2]))
   
 def test_tuple():
-    d = diff((1,2), (1,3))
+    d = diff((1,2), (1,3), fromfile="x", tofile="y")
     expected = dedent('''\
-        --- a
-        +++ b
+        --- x
+        +++ y
         (
         @@ -0,1 +0,1 @@
          1,
@@ -200,10 +200,10 @@ def test_tuple():
 def test_diff_dict():
     a = dict(zero=0,   one=1, two=2, three=3,         nine=9, ten=10)
     b = dict(zero='@', one=1,        three=3, four=4, nine=9, ten=10)
-    d = diff(a, b)
+    d = diff(a, b, fromfile="x", tofile="y")
     expected = dedent('''\
-        --- a
-        +++ b
+        --- x
+        +++ y
         {
         +'four': 4,
          'nine': 9,
@@ -219,10 +219,10 @@ def test_diff_dict():
 def test_diff_dict_keytypes():
     a = {}
     b = {datetime(2010,10,28): 1, True: 1, 2: 2}
-    d = diff(a, b)
+    d = diff(a, b, fromfile="x", tofile="y")
     expected = dedent('''\
-        --- a
-        +++ b
+        --- x
+        +++ y
         {
         +True: 1,
         +2: 2,
@@ -233,10 +233,10 @@ def test_diff_dict_keytypes():
 def test_diff_dict_complex():
     a = dict(a=1, b=dict(foo='bar'))
     b = dict(a=1)
-    d = diff(a, b)
+    d = diff(a, b, fromfile="x", tofile="y")
     expected = dedent('''\
-        --- a
-        +++ b
+        --- x
+        +++ y
         {
          'a': 1,
         -'b': {'foo': 'bar'},
@@ -246,10 +246,10 @@ def test_diff_dict_complex():
 def test_diff_set(set_type=set):
     a = set_type([1, 3, 5, 7, 'abc', 'def'])
     b = set_type(['qwert', 3, 7, 'abc'])
-    d = diff(a, b)
+    d = diff(a, b, fromfile="x", tofile="y")
     expected = dedent('''\
-        --- a
-        +++ b
+        --- x
+        +++ y
         %s([
         -1,
         -5,
@@ -264,10 +264,10 @@ def test_diff_set(set_type=set):
 def test_diff_set_context():
     a = set([1, 2, 3, 4, 5, 6, 7, 8, 9])
     b = set([1, 2, 3, 4, 5, 6, 7, 8])
-    d = diff(a, b)
+    d = diff(a, b, fromfile="x", tofile="y")
     expected = dedent('''\
-        --- a
-        +++ b
+        --- x
+        +++ y
         set([
         -9,
          1,
@@ -281,22 +281,22 @@ def test_diff_frozenset():
     return test_diff_set(set_type=frozenset)
 
 def test_eval_bool():
-    d = diff([1], [1])
+    d = diff([1], [1], fromfile="x", tofile="y")
     assert_equal(bool(d), False)
     
-    d = diff([1], [2])
+    d = diff([1], [2], fromfile="x", tofile="y")
     assert_equal(bool(d), True)
     
-    d = diff(dict(a=1), dict(a=1))
+    d = diff(dict(a=1), dict(a=1), fromfile="x", tofile="y")
     assert_equal(bool(d), False)
 
 def test_equal():
-    d = diff([1], [1])
+    d = diff([1], [1], fromfile="x", tofile="y")
     assert_equal(str(d), '')
 
 @raises(DiffTypeError)
 def test_diff_types():
-    d = diff([1], {1:1})
+    d = diff([1], {1:1}, fromfile="x", tofile="y")
 
 @raises(Exception)
 def test_DataDiff_init_params():
@@ -315,10 +315,10 @@ def test_unhashable_type():
 def test_recursive_list():
     a = [1, [7, 8, 9, 10, 11], 3]
     b = [1, [7, 8,    10, 11], 3]
-    d = diff(a, b)
+    d = diff(a, b, fromfile="x", tofile="y")
     expected = dedent('''\
-        --- a
-        +++ b
+        --- x
+        +++ y
         [
         @@ -0,2 +0,2 @@
          1,
@@ -337,10 +337,10 @@ def test_recursive_list():
 def test_recursive_tuple_different_types():
     a = (1, (7, 8,  9, 10, 11), 3)
     b = (1, (7, 8, 'a', 10, 11), 3)
-    d = diff(a, b)
+    d = diff(a, b, fromfile="x", tofile="y")
     expected = dedent('''\
-        --- a
-        +++ b
+        --- x
+        +++ y
         (
         @@ -0,2 +0,2 @@
          1,
@@ -360,10 +360,10 @@ def test_recursive_tuple_different_types():
 def test_recursive_dict():
     a = dict(a=1, b=dict(foo=17, bar=19), c=3)
     b = dict(a=1, b=dict(foo=17,       ), c=3)
-    d = diff(a, b)
+    d = diff(a, b, fromfile="x", tofile="y")
     expected = dedent('''\
-        --- a
-        +++ b
+        --- x
+        +++ y
         {
          'a': 1,
          'b': {
@@ -377,10 +377,10 @@ def test_recursive_dict():
 def test_recursive_set():
     a = set([1, 2, frozenset([3, 4, 5]), 8])
     b = set([1, 2, frozenset([3, 2, 5]), 8])
-    d = diff(a, b)
+    d = diff(a, b, fromfile="x", tofile="y")
     expected = dedent('''\
-        --- a
-        +++ b
+        --- x
+        +++ y
         set([
         -%s3, 4, 5%s,
         +%s2, 3, 5%s,
@@ -395,10 +395,10 @@ def test_nested_unhashable():
     # dict is unhashable, and nested in a list
     a = [('Wiki.test', dict(user_id='badf00d', mount_point='Wiki'))]
     b = [('Wiki.test', dict(user_id='abc'))]
-    d = diff(a, b)
+    d = diff(a, b, fromfile="x", tofile="y")
     expected = dedent('''\
-        --- a
-        +++ b
+        --- x
+        +++ y
         [
         @@ -0 +0 @@
          (
@@ -417,10 +417,10 @@ def test_nested_unhashable2():
     # dict is unhashable, and nested in another dict
     a = [dict(foo = dict(user_id='badf00d', mount_point='Wiki'))]
     b = [dict(foo = dict(mount_point='Wikiiii'))]
-    d = diff(a, b)
+    d = diff(a, b, fromfile="x", tofile="y")
     expected = dedent('''\
-        --- a
-        +++ b
+        --- x
+        +++ y
         [
         @@ -0 +0 @@
          {
