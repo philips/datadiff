@@ -89,6 +89,7 @@ setup(
     version = __version__,
     description = 'DataDiff is a library to provide human-readable diffs of python data structures.',
     long_description = __doc__,
+    test_suite = "nose.collector",
     author = 'Dave Brondsema',
     author_email = 'dave@brondsema.net',
     url = 'http://sourceforge.net/projects/datadiff/',
